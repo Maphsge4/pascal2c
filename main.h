@@ -1,14 +1,11 @@
-/*
-主头文件
-*/
-#ifndef MAIN_H //!最底下有endif
+#ifndef MAIN_H
 #define MAIN_H
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
-//#define LEXDEBUG 词法分析DEBUG开关
-extern void outputErrors();
+#define LEXDEBUG
 extern int errorCount;
 extern int errorBound;
+extern void outputErrors();
 
 #define CHECK_ERROR_BOUND errorCount++;\
 if(errorCount>=errorBound){\
@@ -24,12 +21,13 @@ if(errorCount>=errorBound){\
 #include <string.h>
 #include <vector>
 
+extern int yydebug;
 using namespace std;
 
 //重新定义属性类型(yylval实际上应由yacc定义)c
 class Type{
 public:
-    string str;//终结符号的具体名称(m,n这种)
+    string str;//终结符号的具体属性
     string token;//终结符号或非终结符号本身的名称
     int lineNumber;//终结符号的行号，参照语法分析指导.docx
     vector<Type*> children; //对应产生式下面的结点
@@ -40,4 +38,4 @@ public:
     };
 #define YYSTYPE Type*
 
-#endif //!MAIN_H,确实有if对应，就在第一行
+#endif
