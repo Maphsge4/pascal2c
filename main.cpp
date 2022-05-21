@@ -1,5 +1,8 @@
 /*
-主函数
+ Pascal-S编译程序
+ v2.0
+ 麻晨翔
+ 2022/05/21
 */
 #include "main.h"
 #include <fstream>
