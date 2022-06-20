@@ -12,9 +12,6 @@ extern string itos(int num);//将整数转化为字符串
 //检查当前语句是否是“返回值完备”的
 bool returnExistedCheckStatement(_Statement *statementNode);
 
-//检查函数定义的程序体语句列表是否存在“返回值完备”的语句
-void returnExistedCheckMainCompound(_Compound *compoundNode, string functionId, int functionLineNumber);
-
 //检查函数定义是否是“返回值完备”的
 void returnExistedCheckFunctionDefinition(_FunctionDefinition *functionDefinitionNode);
 
@@ -64,7 +61,17 @@ bool returnExistedCheckStatement(_Statement *statementNode) {
     }
 }
 
-void returnExistedCheckMainCompound(_Compound *compoundNode, string functionId, int functionLineNumber) {
+void returnExistedCheckFunctionDefinition(_FunctionDefinition *functionDefinitionNode) {
+    if (functionDefinitionNode == NULL) {
+        cout << "[returnExistedCheckFunction] pointer of _FunctionDefinition is null" << endl;
+        return;
+    }
+
+    //检查函数定义的程序体语句列表是否存在“返回值完备”的语句
+    _Compound *compoundNode = functionDefinitionNode->compound;
+    string functionId = functionDefinitionNode->functionID.first;
+    int functionLineNumber = functionDefinitionNode->functionID.second;
+
     if (compoundNode == NULL) {
         cout << "[returnExistedCheckCompound] pointer of _Compound is null" << endl;
         return;
@@ -81,13 +88,4 @@ void returnExistedCheckMainCompound(_Compound *compoundNode, string functionId, 
         warningInformation += "Incomplete return value statement of function \"" + functionId + "\".";
         semanticWarningInformation.push_back(warningInformation);
     }
-}
-
-void returnExistedCheckFunctionDefinition(_FunctionDefinition *functionDefinitionNode) {
-    if (functionDefinitionNode == NULL) {
-        cout << "[returnExistedCheckFunction] pointer of _FunctionDefinition is null" << endl;
-        return;
-    }
-    returnExistedCheckMainCompound(functionDefinitionNode->compound, functionDefinitionNode->functionID.first,
-                                   functionDefinitionNode->functionID.second);
 }
