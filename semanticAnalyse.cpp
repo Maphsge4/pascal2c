@@ -28,15 +28,12 @@ vector<string> semanticWarningInformation;//´æ´¢¾¯¸æĞÅÏ¢µÄÁĞ±í
 
 void SemanticAnalyse(_Program *ASTRoot);
 
-void createSymbolTableAndInit();//´´½¨Ö÷·ûºÅ±í²¢³õÊ¼»¯
-void createSubSymbolTableAndInit();//´´½¨×Ó·ûºÅ±í²¢³õÊ¼»¯
-
 string SemanticAnalyseVariantReference(_VariantReference *variantReference);//¶Ô±äÁ¿ÒıÓÃ½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseStatement(_Statement *statement);//¶ÔÓï¾ä½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseSubprogramDefinition(_FunctionDefinition *functionDefinition);//¶Ô×Ó³ÌĞò¶¨Òå½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseVariant(_Variant *variant);//¶Ô±äÁ¿¶¨Òå½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseConst(_Constant *constant);//¶Ô³£Á¿¶¨Òå½øĞĞÓïÒå·ÖÎö
-void SemanticAnalyseSubprogram(_SubProgram *subprogram);//¶Ô·Ö³ÌĞò½øĞĞÓïÒå·ÖÎö
+void SemanticAnalyseRestProgram(_SubProgram *subprogram);//¶ÔÖ÷³ÌĞòÊ£Óà²¿·Ö½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseProgram(_Program *program);//¶Ô³ÌĞò½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseFormalParameter(_FormalParameter *formalParameter);//¶ÔĞÎÊ½²ÎÊı½øĞĞÓïÒå·ÖÎö
 string SemanticAnalyseFunctionCall(_FunctionCall *functionCall);//¶Ôº¯Êıµ÷ÓÃ½øĞĞÓïÒå·ÖÎö
@@ -92,17 +89,15 @@ void addGeneralErrorInformation(string errorInformation);
 //¼ì²éidÊÇ·ñÓë¿â³ÌĞòÃû¡¢Ö÷³ÌĞòÃû¡¢Ö÷³ÌĞò²ÎÊıÍ¬Ãû Õâ¸öÒ²¿ÉÒÔËã×÷·ûºÅ±í½Ó¿Ú
 bool checkIsTheSameAsKey(string id, int lineNumber); //ÕâÀïµÄKeyÖ¸µÄÊÇ¿â³ÌĞòÃû¡¢Ö÷³ÌĞòÃû¡¢Ö÷³ÌĞò²ÎÊı
 
+//¼ì²éµ±Ç°Óï¾äÊÇ·ñÊÇ¡°·µ»ØÖµÍê±¸¡±µÄ
+bool returnExistedCheckStatement(_Statement *statementNode);
+
+//¼ì²éº¯Êı¶¨ÒåÊÇ·ñÊÇ¡°·µ»ØÖµÍê±¸¡±µÄ
+void returnExistedCheckFunctionDefinition(_FunctionDefinition *functionDefinitionNode);
+
 void SemanticAnalyse(_Program *ASTRoot) {
-    createSymbolTableAndInit();
+    currentSymbolTable = mainSymbolTable = new _SymbolTable("main");//´´½¨Ö÷·ûºÅ±í£¬Ö¸¶¨ÎªÖ÷·ûºÅ±íºó£¬»á×Ô¶¯¼ÓÈëread, writeµÈ¿âº¯Êı
     SemanticAnalyseProgram(ASTRoot);
-}
-
-void createSymbolTableAndInit() {//´´½¨Ö÷·ûºÅ±í
-    currentSymbolTable = mainSymbolTable = new _SymbolTable("main");//Ö¸¶¨ÎªÖ÷·ûºÅ±íºó£¬»á×Ô¶¯¼ÓÈëread, writeµÈ¿âº¯Êı
-}
-
-void createSubSymbolTableAndInit() {//´´½¨×Ó·ûºÅ±í ·ûºÅ±í¶¨Î»
-    currentSymbolTable = new _SymbolTable("sub");//´´½¨²¢¶¨Î»µ½×Ó·ûºÅ±í
 }
 
 //¶Ô±äÁ¿ÒıÓÃ½øĞĞÓïÒå·ÖÎö
@@ -221,36 +216,38 @@ string SemanticAnalyseVariantReference(_VariantReference *variantReference) {
 
 //¶ÔÓï¾ä½øĞĞÓïÒå·ÖÎö
 void SemanticAnalyseStatement(_Statement *statement) {
-    // ÎÒ¸Ğ¾õÕâ¶ùĞÎ²ÎÓÃStatementÀàĞÍ¾ÍÊÇÎªÁËÍ³Ò»¸ñÊ½£¬½øÀ´µÄÊ±ºò¶¼±ä³Éstatement£¬½øÀ´ÒÔºóÔÙ¸ù¾İtypeÓò×ª»»
+    // ĞÎ²ÎÓÃStatementÀàĞÍÎªÁËÍ³Ò»¸ñÊ½£¬½øÀ´µÄÊ±ºò¶¼±ä³Éstatement£¬½øÀ´ÒÔºóÔÙ¸ù¾İtypeÓò×ª»»
     if (statement == NULL) {
         cout << "[SemanticAnalyseStatement] pointer of _Statement is null" << endl;
         return;
     }
+
     if (statement->type == "compound") {  // µÚÒ»ÂÖ·ÖÎöÊ±£¬±¾Éí¾ÍÊÇcompoundÀàĞÍÇ¿ÖÆ×ª»»¹ıÀ´µÄ
         _Compound *compound = reinterpret_cast<_Compound *>(statement);//¶Ô¸´ºÏÓï¾ä¿éÖĞµÄÃ¿Ò»ÌõÓï¾ä½øĞĞÓïÒå·ÖÎö
         for (int i = 0; i < compound->statementList.size(); i++)
             SemanticAnalyseStatement(compound->statementList[i]);
-    } else if (statement->type == "repeat") {
-        _RepeatStatement *repeatStatement = reinterpret_cast<_RepeatStatement *>(statement);
-        string type = SemanticAnalyseExpression(repeatStatement->condition);
+    }
+    else if (statement->type == "repeat") {
+        _RepeatStatement *Statement = reinterpret_cast<_RepeatStatement *>(statement);
+        string type = SemanticAnalyseExpression(Statement->condition);
         if (type != "boolean") {//repeatÓï¾äÀàĞÍ¼ì²é,condition±í´ïÊ½ÀàĞÍ¼ì²é checked
-            addExpressionTypeErrorInformation(repeatStatement->condition, type, "boolean",
+            addExpressionTypeErrorInformation(Statement->condition, type, "boolean",
                                               "condition of repeat-until statement");
-            repeatStatement->statementType = "error";
-        } else
-            repeatStatement->statementType = "void";
-        SemanticAnalyseStatement(repeatStatement->_do);//¶ÔÑ­»·ÌåÓï¾ä½øĞĞÓïÒå·ÖÎö
-    } else if (statement->type == "while") {
-        _WhileStatement *whileStatement = reinterpret_cast<_WhileStatement *>(statement);
-        string type = SemanticAnalyseExpression(whileStatement->condition);
+        }
+
+        SemanticAnalyseStatement(Statement->_do);//¶ÔÑ­»·ÌåÓï¾ä½øĞĞÓïÒå·ÖÎö
+    }
+    else if (statement->type == "while") {
+        _WhileStatement *Statement = reinterpret_cast<_WhileStatement *>(statement);
+        string type = SemanticAnalyseExpression(Statement->condition);
         if (type != "boolean") {//whileÓï¾äÀàĞÍ¼ì²é,condition±í´ïÊ½ÀàĞÍ¼ì²é checked
-            addExpressionTypeErrorInformation(whileStatement->condition, type, "boolean",
+            addExpressionTypeErrorInformation(Statement->condition, type, "boolean",
                                               "condition of while statement");
-            whileStatement->statementType = "error";
-        } else
-            whileStatement->statementType = "void";
-        SemanticAnalyseStatement(whileStatement->_do);//¶ÔÑ­»·ÌåÓï¾ä½øĞĞÓïÒå·ÖÎö
-    } else if (statement->type == "for") {
+        }
+
+        SemanticAnalyseStatement(Statement->_do);//¶ÔÑ­»·ÌåÓï¾ä½øĞĞÓïÒå·ÖÎö
+    }
+    else if (statement->type == "for") {
         _ForStatement *forStatement = reinterpret_cast<_ForStatement *>(statement);
         //¼ì²éÑ­»·±äÁ¿ÊÇ·ñÒÑ¾­¶¨Òå£¬ÈçÒÑ¾­¶¨Òå£¬ÊÇ·ñÎªintegerĞÍ±äÁ¿
         _SymbolRecord *record = findSymbolRecord(currentSymbolTable, forStatement->id.first);
@@ -258,6 +255,7 @@ void SemanticAnalyseStatement(_Statement *statement) {
             addUndefinedErrorInformation(forStatement->id.first, forStatement->id.second);
             return;
         }
+
         //Èç¹ûÎŞ·¨×÷ÎªÑ­»·±äÁ¿ checked
         if (!(record->flag == "value parameter" || record->flag == "var parameter" ||
               record->flag == "normal variant")) {//Èç¹ûµ±Ç°·ûºÅÖÖÀà²»¿ÉÄÜ×÷ÎªÑ­»·±äÁ¿
@@ -266,6 +264,7 @@ void SemanticAnalyseStatement(_Statement *statement) {
                                        record->flag);
             return;
         }
+
         //Èç¹ûÀàĞÍ²»ÊÇÕûĞÍ checked
         if (record->type != "integer") {
             addUsageTypeErrorInformation(forStatement->id.first, forStatement->id.second, record->type,
@@ -273,34 +272,30 @@ void SemanticAnalyseStatement(_Statement *statement) {
             return;
         }
         //forÓï¾äÀàĞÍ¼ì²é,startºÍend±í´ïÊ½ÀàĞÍ¼ì²é
-        forStatement->statementType = "void";
         string type = SemanticAnalyseExpression(forStatement->start);
         if (type != "integer") { //checked
             addExpressionTypeErrorInformation(forStatement->start, type, "integer", "start value of for statement");
-            forStatement->statementType = "error";
         }
         type = SemanticAnalyseExpression(forStatement->end);
         if (type != "integer") { //checked
             addExpressionTypeErrorInformation(forStatement->end, type, "integer", "end value of for statement");
-            forStatement->statementType = "error";
         }
         //¶ÔÑ­»·ÌåÓï¾ä½øĞĞÓïÒå·ÖÎö
         SemanticAnalyseStatement(forStatement->_do);
-    } else if (statement->type == "if") {
+    }
+    else if (statement->type == "if") {
         _IfStatement *ifStatement = reinterpret_cast<_IfStatement *>(statement);
         string type = SemanticAnalyseExpression(ifStatement->condition);
         if (type != "boolean") {//ifÓï¾äÀàĞÍ¼ì²é,condition±í´ïÊ½ÀàĞÍ¼ì²é checked
             addExpressionTypeErrorInformation(ifStatement->condition, type, "boolean", "condition of if statement");
-            ifStatement->statementType = "error";
         } else
-            ifStatement->statementType = "void";
-        SemanticAnalyseStatement(ifStatement->then);//¶ÔthenÓï¾ä½øĞĞÓïÒå·ÖÎö
+            SemanticAnalyseStatement(ifStatement->then);//¶ÔthenÓï¾ä½øĞĞÓïÒå·ÖÎö
         if (ifStatement->els != NULL)//¶ÔelseÓï¾ä½øĞĞÓï¾ä·ÖÎö
             SemanticAnalyseStatement(ifStatement->els);
-    } else if (statement->type == "assign") {//×óÖµÌØÅĞ
+    }
+    else if (statement->type == "assign") {//×óÖµÌØÅĞ
         _AssignStatement *assignStatement = reinterpret_cast<_AssignStatement *>(statement);
         //¶Ô×óÖµ±äÁ¿ÒıÓÃ½øĞĞÓïÒå·ÖÎö,»ñµÃleftType
-        assignStatement->statementType = "void";
         assignStatement->variantReference->locFlag = -1;//±ê¼ÇÎª×óÖµ
         string leftType = SemanticAnalyseVariantReference(assignStatement->variantReference);
         if (assignStatement->variantReference->kind == "constant") {
@@ -323,7 +318,6 @@ void SemanticAnalyseStatement(_Statement *statement) {
                         "> The type of return expression is " + rightType + " ,but not " +
                         assignStatement->variantReference->variantType + " as function \"" +
                         assignStatement->variantReference->variantId.first + "\" defined.");
-                assignStatement->statementType = "error";
             }
             assignStatement->isReturnStatement = true;
             return;
@@ -332,10 +326,10 @@ void SemanticAnalyseStatement(_Statement *statement) {
         if (leftType != rightType && !(leftType == "real" && rightType == "integer")) {
             //checked
             addAssignTypeMismatchErrorInformation(assignStatement->variantReference, assignStatement->expression);
-            assignStatement->statementType = "error";
-        } else
-            assignStatement->statementType = "void";
-    } else if (statement->type == "procedure") {//readµÄ²ÎÊıÖ»ÄÜÊÇ±äÁ¿»òÊı×éÔªËØ;
+
+        }
+    }
+    else if (statement->type == "procedure") {//readµÄ²ÎÊıÖ»ÄÜÊÇ±äÁ¿»òÊı×éÔªËØ;
         _ProcedureCall *procedureCall = reinterpret_cast<_ProcedureCall *>(statement);
         //Í¨¹ıprocedureId²é±í£¬»ñµÃ²ÎÊı¸öÊı¡¢²ÎÊıÀàĞÍµÈĞÅÏ¢
         //www
@@ -343,18 +337,17 @@ void SemanticAnalyseStatement(_Statement *statement) {
         _SymbolRecord *record = findSymbolRecord(mainSymbolTable, procedureCall->procedureId.first);
         if (record == NULL)
             record = findSymbolRecord(currentSymbolTable, procedureCall->procedureId.first, 1);
-        procedureCall->statementType = "void";
         if (record == NULL) {//Î´¶¨Òå checked
             addUndefinedErrorInformation(procedureCall->procedureId.first, procedureCall->procedureId.second);
-            procedureCall->statementType = "error";
             return;
         }
+
         if (record->flag != "procedure") {//Èç¹û²»ÊÇ¹ı³Ì checked
             addPreFlagErrorInformation(procedureCall->procedureId.first, procedureCall->procedureId.second, "procedure",
                                        record->lineNumber, record->flag);
-            procedureCall->statementType = "error";
             return;
         }
+        // ÒÔÏÂ£¬Èç¹ûÊÇ¹ı³Ì
         if (record->id == "exit") {
             /*exit¼È¿ÉÒÔ³öÏÖÔÚ¹ı³ÌÖĞ£¬Ò²¿ÉÒÔ³öÏÖÔÚº¯ÊıÖĞ£¬³öÏÖÔÚ¹ı³ÌÖĞÊ±£¬
             exit²»ÄÜ´ø²ÎÊı£¬³öÏÖÔÚº¯ÊıÖĞÊ±£¬exitÖ»ÄÜ´øÒ»¸ö²ÎÊı£¬
@@ -366,7 +359,7 @@ void SemanticAnalyseStatement(_Statement *statement) {
                     addGeneralErrorInformation(
                             "[Return value redundancy!] <Line " + itos(procedureCall->procedureId.second) +
                             "> Number of return value of procedure must be 0, that is, exit must have no actual parameters.");
-                    procedureCall->statementType = "error";
+//                    procedureCall->statementType = "error";
                 }
                 return;
             }
@@ -392,7 +385,6 @@ void SemanticAnalyseStatement(_Statement *statement) {
                                            "> The type of return expression is " + returnType + " ,but not " +
                                            currentSymbolTable->recordList[0]->type + " as function \"" +
                                            currentSymbolTable->recordList[0]->id + "\" defined.");
-                procedureCall->statementType = "error";
             }
             procedureCall->isReturnStatement = true;
             return;
@@ -404,7 +396,6 @@ void SemanticAnalyseStatement(_Statement *statement) {
                 addGeneralErrorInformation(
                         "[" + tmp + " actual parameter missing!] <Line " + itos(procedureCall->procedureId.second) +
                         "> procedure \"" + record->id + "\" must have at least one actual parameter.");
-                procedureCall->statementType = "error";
             }
         }
         if (record->id == "read") {//²ÎÊıÖ»ÄÜÊÇ±äÁ¿»òÊı×éÔªËØ£¬²»ÄÜÊÇ³£Á¿¡¢±í´ïÊ½µÈ
@@ -418,23 +409,18 @@ void SemanticAnalyseStatement(_Statement *statement) {
                                                              i + 1, procedureCall->actualParaList[i]);
                 if (procedureCall->actualParaList[i]->expressionType == "boolean")
                     addReadBooleanErrorInformation(procedureCall->actualParaList[i], i + 1);
-                if (actualType == "error")
-                    procedureCall->statementType = "error";
             }
             return;
         }
         if (record->amount == -1) {//Èç¹ûÊÇ±ä²Î¹ı³Ì£¨±¾±àÒëÆ÷Éæ¼°µÄ±ä²Î¹ı³Ì(³ıÁËread)¶Ô²ÎÊıÀàĞÍÃ»ÓĞÒªÇó£¬µ«²»ÄÜÎªerror£©
             for (int i = 0; i < procedureCall->actualParaList.size(); i++) {
                 string actualType = SemanticAnalyseExpression(procedureCall->actualParaList[i]);
-                if (actualType == "error")
-                    procedureCall->statementType = "error";
             }
             return;
         }
         if (procedureCall->actualParaList.size() != record->amount) { //checked
             addNumberErrorInformation(procedureCall->procedureId.first, procedureCall->procedureId.second,
                                       int(procedureCall->actualParaList.size()), record->amount, "procedure");
-            procedureCall->statementType = "error";
             return;
         }
         // ĞÎ²ÎÔÚ·ûºÅ±íÖĞµÄ¶¨Î»
@@ -458,7 +444,6 @@ void SemanticAnalyseStatement(_Statement *statement) {
                     addExpressionTypeErrorInformation(procedureCall->actualParaList[i], actualType, formalType,
                                                       itos(i + 1) + "th actual parameter of procedure call of \"" +
                                                       procedureCall->procedureId.first + "\"");
-                    procedureCall->statementType = "error";
                 }
             } else { //ÒıÓÃ²ÎÊıĞè±£³ÖÀàĞÍÇ¿Ò»ÖÂ
                 if (actualType != formalType) { //Èç¹ûÀàĞÍ²»Ò»ÖÂ
@@ -466,7 +451,6 @@ void SemanticAnalyseStatement(_Statement *statement) {
                     addExpressionTypeErrorInformation(procedureCall->actualParaList[i], actualType, formalType,
                                                       itos(i + 1) + "th actual parameter of procedure call of \"" +
                                                       procedureCall->procedureId.first + "\"");
-                    procedureCall->statementType = "error";
                 }
             }
         }
@@ -483,16 +467,14 @@ void SemanticAnalyseFormalParameter(_FormalParameter *formalParameter) {
         return;
     }
     //¼ì²éÊÇ·ñÓë¿â³ÌĞòÃû¡¢Ö÷³ÌĞòÃû¡¢Ö÷³ÌĞò²ÎÊıÍ¬Ãû
-    //if (checkIsTheSameAsKey(formalParameter->paraId.first, formalParameter->paraId.second))
-    //return;
     _SymbolRecord *record = findSymbolRecord(currentSymbolTable, formalParameter->paraId.first, 1);
     if (!checkIsTheSameAsKey(formalParameter->paraId.first, formalParameter->paraId.second)) {
         if (record != NULL) //Èç¹ûÖØ¶¨Òå
             addDuplicateDefinitionErrorInformation(record->id, record->lineNumber, record->flag, record->type,
                                                    formalParameter->paraId.second);
     }
-    //¼ì²éÊÇ·ñÓëµ±Ç°³ÌĞòÃûÒÔ¼°ÔÚÕâÖ®Ç°¶¨ÒåµÄĞÎ²ÎÍ¬Ãû£¬Èç¹ûÍ¬Ãû£¬Ìí¼ÓÏÂ»®Ïß½øĞĞ»Ö¸´£¨ÔÚaddº¯ÊıÖĞ½øĞĞ£©
 
+    //¼ì²éÊÇ·ñÓëµ±Ç°³ÌĞòÃûÒÔ¼°ÔÚÕâÖ®Ç°¶¨ÒåµÄĞÎ²ÎÍ¬Ãû£¬Èç¹ûÍ¬Ãû£¬Ìí¼ÓÏÂ»®Ïß½øĞĞ»Ö¸´£¨ÔÚaddº¯ÊıÖĞ½øĞĞ£©
     currentSymbolTable->addPara(formalParameter->paraId.first, formalParameter->paraId.second,
                                 formalParameter->type, (formalParameter->flag));
 
@@ -510,12 +492,14 @@ void SemanticAnalyseSubprogramDefinition(_FunctionDefinition *functionDefinition
                                                functionDefinition->functionID.second);
         return;
     }
-    string subprogramType;
+
+    string subprogramType;// ¿´ÓĞÃ»ÓĞ·µ»ØÖµ£¬±æ±ğÊÇº¯Êı»¹ÊÇ¹ı³Ì
     if (functionDefinition->type.first == "")
         subprogramType = "procedure";
     else
         subprogramType = "function";
-    createSubSymbolTableAndInit();//´´½¨²¢¶¨Î»µ½×Ó±í
+
+    currentSymbolTable = new _SymbolTable("sub");//´´½¨²¢¶¨Î»µ½×Ó·ûºÅ±í
     //½«×Ó³ÌĞòÃûµÈĞÅÏ¢Ìí¼Óµ½×Ó·ûºÅ±íÖĞ
     currentSymbolTable->addProgramName(functionDefinition->functionID.first, functionDefinition->functionID.second,
                                        subprogramType, int(functionDefinition->formalParaList.size()),
@@ -554,22 +538,25 @@ void SemanticAnalyseVariant(_Variant *variant) {
     }
     _SymbolRecord *record = findSymbolRecord(currentSymbolTable, variant->variantId.first,
                                              1);//ÓÃvariantId.firstÈ¥²é·ûºÅ±í£¬¼ì²éÊÇ·ñÖØ¶¨Òå
-    if (checkIsTheSameAsKey(variant->variantId.first, variant->variantId.second))
+    if (checkIsTheSameAsKey(variant->variantId.first, variant->variantId.second))//Óë¿â³ÌĞòÃû¡¢Ö÷³ÌĞòÃû¡¢Ö÷³ÌĞò²ÎÊıÏàÍ¬
         return;
     if (record != NULL) {//Èç¹ûÖØ¶¨Òå checked
         addDuplicateDefinitionErrorInformation(record->id, record->lineNumber, record->flag, record->type,
                                                variant->variantId.second);
         return;
     }
+
     if (variant->type->flag == 0)//Èç¹ûÊÇÆÕÍ¨±äÁ¿
         currentSymbolTable->addVar(variant->variantId.first, variant->variantId.second, variant->type->type.first);
     else {//Èç¹ûÊÇÊı×é
         //Êı×é¶¨ÒåÊ±£¬ÉÏÏÂ½çµÄÏŞÖÆÊÇÉÏ½ç±ØĞë´óÓÚµÈÓÚÏÂ½ç£»°´ÕÕÎÄ·¨¶¨Òå£¬ÉÏÏÂ½ç¾ùÎªÎŞ·ûºÅÊı£¬ÇÒÍ¨¹ıÁËÓï·¨·ÖÎö£¬¾ÍÒ»¶¨ÊÇÎŞ·ûºÅÊı
         vector<pair<int, int> > &tmp = variant->type->arrayRangeList;
+        // ÒÀ´Î¼ì²éÊı×éµÄÃ¿Ò»¸öÎ¬¶È
         for (int i = 0; i < tmp.size(); i++) {
             if (tmp[i].first > tmp[i].second) { //checked
                 addArrayRangeUpSideDownErrorInformation(variant->variantId.first, variant->variantId.second, i + 1,
                                                         tmp[i].first, tmp[i].second);
+                // ½øĞĞÁË´íÎó´¦ÀíºóµÄ»Ö¸´
                 tmp[i].second = tmp[i].first; //Èç¹ûÉÏ½çĞ¡ÓÚÏÂ½ç£¬½«ÉÏ½çÉèÖÃÎªÏÂ½ç
             }
         }
@@ -586,37 +573,25 @@ void SemanticAnalyseConst(_Constant *constant) {
     }
     //ÓÃconstId.firstÈ¥²é·ûºÅ±í£¬¼ì²éÊÇ·ñÖØ¶¨Òå 
     _SymbolRecord *record = findSymbolRecord(currentSymbolTable, constant->constId.first, 1);
-    if (checkIsTheSameAsKey(constant->constId.first, constant->constId.second))
+    if (checkIsTheSameAsKey(constant->constId.first, constant->constId.second))//Óë¿â³ÌĞòÃû¡¢Ö÷³ÌĞòÃû¡¢Ö÷³ÌĞò²ÎÊıÏàÍ¬
         return;
     if (record != NULL) {//ÖØ¶¨Òå checked
         addDuplicateDefinitionErrorInformation(record->id, record->lineNumber, record->flag, record->type,
                                                constant->constId.second);
         return;
     }
-    if (constant->type == "id") { //Èç¹û¸Ã³£Á¿ÓÉÁíÍâµÄ³£Á¿±êÊ¶·û¶¨Òå
-        _SymbolRecord *preRecord = findSymbolRecord(currentSymbolTable, constant->valueId.first);
-        if (preRecord == NULL) {//Î´¶¨Òå checked
-            addUndefinedErrorInformation(constant->valueId.first, constant->valueId.second);
-            return;
-        }
-        if (preRecord->flag != "constant") {//Èç¹û²»ÊÇ³£Á¿ checked
-            addPreFlagErrorInformation(constant->valueId.first, constant->valueId.second, "constant",
-                                       preRecord->lineNumber, preRecord->flag);
-            return;
-        }
-        currentSymbolTable->addConst(constant->constId.first, constant->constId.second, preRecord->type,
-                                     constant->isMinusShow ^ preRecord->isMinusShow, preRecord->value);
-    } else//¸Ã³£Á¿ÓÉ³£ÊıÖµ¶¨Òå
-        currentSymbolTable->addConst(constant->constId.first, constant->constId.second, constant->type,
-                                     constant->isMinusShow, constant->strOfVal);
+    //²»¿¼ÂÇ³£Á¿ÓÉÁíÒ»¸ö³£Á¿¶¨ÒåµÄÇé¿ö
+    currentSymbolTable->addConst(constant->constId.first, constant->constId.second, constant->type,
+                                 constant->isMinusShow, constant->strOfVal);
 }
 
-//¶Ô·Ö³ÌĞò½øĞĞÓïÒå·ÖÎö
-void SemanticAnalyseSubprogram(_SubProgram *subprogram) {
+//¶ÔÖ÷³ÌĞòÊ£Óà²¿·Ö½øĞĞÓïÒå·ÖÎö
+void SemanticAnalyseRestProgram(_SubProgram *subprogram) {
     if (subprogram == NULL) {
         cout << "[SemanticAnalyseSubprogram] pointer of _Subprogram is null" << endl;
         return;
     }
+
     for (int i = 0; i < subprogram->constList.size(); i++)
         SemanticAnalyseConst(subprogram->constList[i]);
     for (int i = 0; i < subprogram->variantList.size(); i++)
@@ -859,9 +834,11 @@ void SemanticAnalyseProgram(_Program *program) {
         addGeneralErrorInformation(
                 "[Duplicate defined error!] <Line " + itos(program->programId.second) + "> Name of program \"" +
                 program->programId.first + "\" has been defined as a lib program.");
+
     mainSymbolTable->addProgramName(program->programId.first, program->programId.second, "procedure",
                                     int(program->paraList.size()), "");
-    //½«Ö÷³ÌĞòµÄ²ÎÊıÌí¼Óµ½Ö÷·ûºÅ±íÖĞ£¬flag¶¨Îª"parameter of program"
+
+    //½«Ö÷³ÌĞòµÄ²ÎÊı(input,output)Ìí¼Óµ½Ö÷·ûºÅ±íÖĞ£¬flag¶¨Îª"parameter of program"
     for (int i = 0; i < program->paraList.size(); i++) {//¼ì²éÖ÷³ÌĞò²ÎÊıÊÇ·ñºÍÖ÷³ÌĞòÃûÍ¬Ãû
         if (program->paraList[i].first == program->programId.first) //ÓëÖ÷³ÌĞòÃûÍ¬Ãû
             addGeneralErrorInformation("[Duplicate defined error!] <Line " + itos(program->programId.second) +
@@ -874,6 +851,7 @@ void SemanticAnalyseProgram(_Program *program) {
         //Èç¹ûÃ»ÓĞ´í£¬ÄÇ¾ÍËæ×ÅÑ­»·Ò»¸öÒ»¸ö¼Ó½øÈ¥
         mainSymbolTable->addVoidPara(program->paraList[i].first, program->paraList[i].second);
     }
+
     //Ö÷·ûºÅ±íĞèÌáÇ°¼ÓÈëread¡¢write¡¢exitµÈ¿âº¯Êı
     //¶ÔÓÚ¿âº¯ÊıÀ´Ëµ£¬setProcedureµÄºóÈı¸ö²ÎÊı,lineNumber,amount,subSymbolTableÊÇÃ»ÓĞÓÃµÄ
     //lineNumber=-1ÇÒsubSymbolTable=NULL±íÊ¾ÊÇ¿âº¯Êı
@@ -887,8 +865,8 @@ void SemanticAnalyseProgram(_Program *program) {
     //Ìí¼Óexit¹ı³Ì£¬¸Ã¹ı³ÌµÄ²ÎÊı¸öÊıĞèÒª·ÖÇé¿öÌÖÂÛ£¬³ÌĞòÀï»áÓĞÌØÅĞ£¬ÕâÀïÖ¸¶¨Îª0Ã»ÓĞÌØÊâº¬Òå
     mainSymbolTable->addProcedure("exit", -1, 0, NULL);
 
-    //¶Ô·Ö³ÌĞò£¨³ıÁËµÚÒ»ĞĞ³ÌĞòÃûÒÔÍâµÄ²¿·Ö£©½øĞĞÓïÒå·ÖÎö
-    SemanticAnalyseSubprogram(program->subProgram);
+    //¶ÔÖ÷³ÌĞòÊ£Óà²¿·Ö£¨³ıÁËµÚÒ»ĞĞ³ÌĞòÃûÒÔÍâµÄ²¿·Ö£©½øĞĞÓïÒå·ÖÎö
+    SemanticAnalyseRestProgram(program->subProgram);
 }
 
 string itos(int num) {
@@ -1106,4 +1084,78 @@ bool checkIsTheSameAsKey(string id, int lineNumber) { //ÕâÀïµÄKeyÖ¸µÄÊÇ¿â³ÌĞòÃû¡
         }
     }
     return false;
+}
+
+bool returnExistedCheckStatement(_Statement *statementNode) {
+    if (statementNode == NULL) {
+        cout << "[returnExistedCheckStatement] pointer of _Statement is null" << endl;
+        return false;
+    }
+    if (statementNode->type == "compound") {
+        _Compound *compound = reinterpret_cast<_Compound *>(statementNode);
+        for (int i = 0; i < compound->statementList.size(); i++) {
+            if (returnExistedCheckStatement(compound->statementList[i]))
+                return true;
+        }
+        return false;
+    } else if (statementNode->type == "repeat") {
+        _RepeatStatement *repeatStatement = reinterpret_cast<_RepeatStatement *>(statementNode);
+        return returnExistedCheckStatement(repeatStatement->_do);
+    } else if (statementNode->type == "while") {
+        _WhileStatement *whileStatement = reinterpret_cast<_WhileStatement *>(statementNode);
+        return returnExistedCheckStatement(whileStatement->_do);
+    } else if (statementNode->type == "for") {
+        _ForStatement *forStatement = reinterpret_cast<_ForStatement *>(statementNode);
+        return returnExistedCheckStatement(forStatement->_do);
+    } else if (statementNode->type == "if") {
+        _IfStatement *ifStatement = reinterpret_cast<_IfStatement *>(statementNode);
+        if (ifStatement->then == NULL) {
+            cout << "[returnExistedCheckStatement][IfStatement] the pointer of then statement is null";
+            return false;
+        }
+        if (ifStatement->els == NULL)
+            return false;
+        else
+            return returnExistedCheckStatement(ifStatement->then) && returnExistedCheckStatement(ifStatement->els);
+    } else if (statementNode->type == "assign") { //ÅĞ¶ÏÊÇ·ñÊÇ·µ»ØÖµÓï¾ä
+        _AssignStatement *assignStatement = reinterpret_cast<_AssignStatement *>(statementNode);
+        return assignStatement->isReturnStatement; //ÔÚÖ®Ç°µÄÓïÒå·ÖÎöÖĞ£¬ÒÑ¾­±£´æÊÇ·ñÊÇ·µ»ØÖµÓï¾ä
+        //¼´fun:=expressionµÄÇé¿ö
+    } else if (statementNode->type == "procedure") { //ÅĞ¶ÏÊÇ·ñÊÇ·µ»ØÖµÓï¾ä
+        _ProcedureCall *procedureCall = reinterpret_cast<_ProcedureCall *>(statementNode);
+        return procedureCall->isReturnStatement; //ÔÚÖ®Ç°µÄÓïÒå·ÖÎöÖĞ£¬ÒÑ¾­±£´æÊÇ·ñÊÇ·µ»ØÖµÓï¾ä
+        //¼´exit()µÄÇé¿ö
+    } else {
+        cout << "[returnExistedCheckStatement] statement type error" << endl;
+        return false;
+    }
+}
+
+void returnExistedCheckFunctionDefinition(_FunctionDefinition *functionDefinitionNode) {
+    if (functionDefinitionNode == NULL) {
+        cout << "[returnExistedCheckFunction] pointer of _FunctionDefinition is null" << endl;
+        return;
+    }
+
+    //¼ì²éº¯Êı¶¨ÒåµÄ³ÌĞòÌåÓï¾äÁĞ±íÊÇ·ñ´æÔÚ¡°·µ»ØÖµÍê±¸¡±µÄÓï¾ä
+    _Compound *compoundNode = functionDefinitionNode->compound;
+    string functionId = functionDefinitionNode->functionID.first;
+    int functionLineNumber = functionDefinitionNode->functionID.second;
+
+    if (compoundNode == NULL) {
+        cout << "[returnExistedCheckCompound] pointer of _Compound is null" << endl;
+        return;
+    }
+    bool ok = false;
+    for (int i = 0; i < compoundNode->statementList.size() && !ok; i++) {
+        if (returnExistedCheckStatement(compoundNode->statementList[i]))
+            ok = true;
+    }
+    if (!ok) {
+        string warningInformation;
+        warningInformation = "[Return value statement missing!] ";
+        warningInformation += "<Line " + itos(functionLineNumber) + "> ";
+        warningInformation += "Incomplete return value statement of function \"" + functionId + "\".";
+        semanticWarningInformation.push_back(warningInformation);
+    }
 }

@@ -5,6 +5,7 @@
 #ifndef ASTNODES_H
 #define ASTNODES_H
 
+
 #include <vector>
 #include <string>
 
@@ -112,7 +113,6 @@ public:
 class _Statement {
 public:
     string type;//"compound","repeat","while","for","if","assign","procedure"
-    string statementType;//区别于type，取值为"void"或"error"
     int lineNumber;//行号
     bool isReturnStatement;//是否是返回值语句
 public:
@@ -299,6 +299,8 @@ public:
 
     ~_Program();
 };
+
+
 
 #endif // !ASTNODES_H
 

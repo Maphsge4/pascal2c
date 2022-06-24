@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 include_directories(./)
 aux_source_directory(. DIR_SRCS)
-add_executable(pascal2c ${DIR_SRCS})
+add_executable(pascal2c ${DIR_SRCS} ASTnodes.cpp)
 
 
 set(CMAKE_INSTALL_PREFIX ./out)
