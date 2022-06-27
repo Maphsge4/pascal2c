@@ -4,7 +4,6 @@
 //函数和过程中需要特判进行转换
 #include "symbolTable.h"
 #include "ASTnodes.h"
-#include <stdarg.h>
 #include <iostream>
 #include <fstream>
 
@@ -72,7 +71,6 @@ vector<pair<string, int> > globalStatementList;//主程序语句列表
 
 void codeGenerate(_Program *ASTRoot, string outName);//代码生成
 
-bool isEqual(int num, ...);//判断num个整数是否相等
 string transformType(string pascalType);//将pascal的type转化为c的type
 string transformOpertion(string operation, int mode = 0);//将pascal的operation转化为c的operation
 
@@ -119,17 +117,18 @@ void codeGenerate(_Program *ASTRoot, string outName) {
     codeGenerateCurrentSymbolTable = mainSymbolTable;
     mp_subprogramToHeadFile["read"] = "stdio.h";
     mp_subprogramToHeadFile["write"] = "stdio.h";
-    mp_subprogramToHeadFile["writeln"] = "stdio.h";
     mp_headFileShow["stdio.h"] = false;
 
     //获取子程序声明列表
     subproDec dec;
     for (int i = 0; i < mainSymbolTable->recordList.size(); i++) {
         _SymbolRecord *record = mainSymbolTable->recordList[i];
+        //寻找函数或者过程有哪些，为了在C语言里写函数声明
         if ((record->flag == "procedure" || record->flag == "function") && record->subSymbolTable != NULL) {
             dec.clear();
             dec.returnType = transformType(record->type);
             dec.id = record->id;
+            // 去子符号表查形参
             _SymbolTable *subTable = record->subSymbolTable;
             for (int i = 1; i <= record->amount; i++) {
                 dec.paraIdList.push_back(subTable->recordList[i]->id);
@@ -139,10 +138,12 @@ void codeGenerate(_Program *ASTRoot, string outName) {
                     dec.isParaRefList.push_back(false);
                 dec.paraTypeList.push_back(transformType(subTable->recordList[i]->type));
             }
+            // 压栈
             subproDecList.push_back(dec);
         }
     }
 
+    //解析语法树，并利用符号表，依次把各个部分压栈
     inputConstList(ASTRoot->subProgram->constList, globalConstIdList, globalConstTypeList, globalConstValueList,
                    codeGenerateCurrentSymbolTable);//全局常量/主程序常量
     inputVariantList(ASTRoot->subProgram->variantList, globalVariantIdList, globalVariantTypeList, globalArraySizeList,
@@ -151,6 +152,7 @@ void codeGenerate(_Program *ASTRoot, string outName) {
     codeGenerateCurrentSymbolTable = mainSymbolTable;//定位到主符号表
     inputSubMainFunction(ASTRoot);//原PASCAL主程序对应C的程序头和语句体
 
+    //对相应栈中的部分输出为C代码
     fout << "//Head files" << endl;
     outputHeadFileList();//输出头文件
     fout << endl;
@@ -175,20 +177,6 @@ void codeGenerate(_Program *ASTRoot, string outName) {
     outputSubproDefList();
 
     fout.close();
-}
-
-bool isEqual(int num, ...) {
-    va_list argp;
-    int para;
-    va_start(argp, num);
-    int pre = va_arg(argp, int);
-    for (int argno = 1; argno < num; argno++) {
-        para = va_arg(argp, int);
-        if (para != pre)
-            return false;
-    }
-    va_end(argp);
-    return true;
 }
 
 string transformType(string pascalType) {
@@ -568,10 +556,6 @@ void inputSubproDefList(_SubProgram *subProgramNode) {
     for (int i = 0; i < subProgramNode->subprogramDefinitionList.size(); i++) {
         _SymbolRecord *record = findSymbolRecord(mainSymbolTable,
                                                  subProgramNode->subprogramDefinitionList[i]->functionID.first);
-        //if (record == NULL || (record->flag != "function" && record->flag != "procedure")) {
-        //cout << "subProgramNode definition not found" << endl;
-        //return;
-        //}
         codeGenerateCurrentSymbolTable = record->subSymbolTable; //定位到子符号表
         inputSubproDef(subProgramNode->subprogramDefinitionList[i]);
     }
@@ -616,11 +600,7 @@ bool checkAndInputLibrarySubprogram(_ProcedureCall *procedureCall, vector<pair<s
         }
         proCall += ";";
         statementList.push_back(make_pair(proCall, retract));
-    } else if (id == "write" || id == "writeln") {
-        if (id == "writeln" && procedureCall->actualParaList.size() == 0) {
-            statementList.push_back(make_pair("printf(\"\\n\");", retract));
-            return true;
-        }
+    } else if (id == "write") {
         proCall += "printf(\"";
         string exp = "";//exp按顺序保存了表达式
         for (int i = 0; i < procedureCall->actualParaList.size(); i++) {
@@ -640,16 +620,12 @@ bool checkAndInputLibrarySubprogram(_ProcedureCall *procedureCall, vector<pair<s
                 statementList.push_back(make_pair("else", retract + 1));
                 statementList.push_back(make_pair("printf(\"false\");", retract + 2));
                 statementList.push_back(make_pair("}", retract));
-                if (i == procedureCall->actualParaList.size() - 1 && id == "writeln")
-                    statementList.push_back(make_pair("printf(\"\\n\");", retract));
             } else {
                 proCall += typeFormat;
                 exp += ", " + expression;
             }
         }
         if (exp != "") {
-            if (id == "writeln")
-                proCall += "\\n";
             proCall += "\"" + exp + ");";
             statementList.push_back(make_pair(proCall, retract));
         }
@@ -685,7 +661,7 @@ void outputHeadFileList() {
 
 void outputConstList(vector<string> &constIdList, vector<string> &constTypeList, vector<string> &constValueList,
                      int retract) {
-    if (!isEqual(3, constIdList.size(), constTypeList.size(), constValueList.size())) {
+    if (!(constIdList.size() == constTypeList.size() && constTypeList.size() == constValueList.size())) {
         cout << "[outputConstList] ERROR: constant list size miss match" << endl;
         return;
     }
@@ -700,7 +676,7 @@ void outputConstList(vector<string> &constIdList, vector<string> &constTypeList,
 void
 outputVariantList(vector<string> &variantIdList, vector<string> &variantTypeList, vector<vector<int> > &arraySizeList,
                   int retract) {
-    if (!isEqual(3, variantIdList.size(), variantTypeList.size(), arraySizeList.size())) {
+    if (!(variantIdList.size() == variantTypeList.size() && variantTypeList.size() == arraySizeList.size())) {
         cout << "[outputConstList] ERROR: variant list size miss match" << endl;
         return;
     }
@@ -743,7 +719,8 @@ void outputSubproDecList() {
             fout << "[outputSubproDecList] ERROR: " << i << "th" << " subprogram's id missing" << endl;
             return;
         }
-        if (!isEqual(3, vec[i].paraIdList.size(), vec[i].isParaRefList.size(), vec[i].paraTypeList.size())) {
+        if (!(vec[i].paraIdList.size() == vec[i].isParaRefList.size() &&
+              vec[i].isParaRefList.size() == vec[i].paraTypeList.size())) {
             fout << "[outputSubproDecList] ERROR: " << i << "th" << " subprogram's vector size mismatch" << endl;
             return;
         }
@@ -770,11 +747,13 @@ void outputSubproDefList() {
     int n = int(subproDefList.size());
     vector<subproDef> &vec = subproDefList;
     for (int i = 0; i < n; i++) {
-        if (!isEqual(3, vec[i].constIdList.size(), vec[i].constTypeList.size(), vec[i].constValueList.size())) {
+        if (!(vec[i].constIdList.size() == vec[i].constTypeList.size() &&
+              vec[i].constTypeList.size() == vec[i].constValueList.size())) {
             fout << "[outputSubproDefList] ERROR: " << i << "th" << "subproDef's " << "constant size mismatch" << endl;
             return;
         }
-        if (!isEqual(3, vec[i].variantIdList.size(), vec[i].variantTypeList.size(), vec[i].arraySizeList.size())) {
+        if (!(vec[i].variantIdList.size() == vec[i].variantTypeList.size() &&
+              vec[i].variantTypeList.size() == vec[i].arraySizeList.size())) {
             fout << "[outputSubproDefList] ERROR: " << i << "th" << "subproDef's " << "variant size mismatch" << endl;
             return;
         }

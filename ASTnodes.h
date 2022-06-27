@@ -209,8 +209,6 @@ public:
 public:
     _Type();
 
-    _Type(pair<string, int> _type, int _flag, vector<pair<int, int> > _arrayRangeList);
-
     ~_Type() {}
 };
 

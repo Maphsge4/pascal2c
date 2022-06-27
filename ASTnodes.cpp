@@ -1,12 +1,12 @@
 #include "ASTnodes.h"
-#include <iostream>
-using namespace std;
 #define DEL(x) {\
     if(x!=NULL){\
         delete x;\
         x=NULL;\
     }\
 }
+
+using namespace std;
 
 /*
 抽象语法树各类型节点的方法实现代码，主要涉及语义分析
@@ -39,7 +39,7 @@ _FunctionCall::~_FunctionCall(){
 
 _VariantReference::_VariantReference(){
     expressionList.clear();
-	locFlag = 1;//默认是右值
+    locFlag = 1;//默认是右值
 }
 
 _VariantReference::~_VariantReference(){
@@ -49,7 +49,7 @@ _VariantReference::~_VariantReference(){
 }
 
 _Compound::_Compound(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     statementList.clear();
 }
 
@@ -60,7 +60,7 @@ _Compound::~_Compound(){
 }
 
 _RepeatStatement::_RepeatStatement(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     condition=NULL;
     _do=NULL;
 }
@@ -71,7 +71,7 @@ _RepeatStatement::~_RepeatStatement(){
 }
 
 _WhileStatement::_WhileStatement(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     condition=NULL;
     _do=NULL;
 }
@@ -82,7 +82,7 @@ _WhileStatement::~_WhileStatement(){
 }
 
 _ForStatement::_ForStatement(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     start=NULL;
     end=NULL;
     _do=NULL;
@@ -95,7 +95,7 @@ _ForStatement::~_ForStatement(){
 }
 
 _IfStatement::_IfStatement(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     condition=NULL;
     then=NULL;
     els=NULL;
@@ -108,7 +108,7 @@ _IfStatement::~_IfStatement(){
 }
 
 _AssignStatement::_AssignStatement(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     variantReference=NULL;
     expression=NULL;
 }
@@ -119,7 +119,7 @@ _AssignStatement::~_AssignStatement(){
 }
 
 _ProcedureCall::_ProcedureCall(){
-	isReturnStatement = false;
+    isReturnStatement = false;
     actualParaList.clear();
 }
 
@@ -133,12 +133,8 @@ _Type::_Type(){
     arrayRangeList.clear();
 }
 
-_Type::_Type(pair<string,int> _type,int _flag,vector< pair<int,int> > _arrayRangeList):type(_type),flag(_flag),arrayRangeList(_arrayRangeList){
-
-}
-
 _FormalParameter::_FormalParameter(){
-    
+
 }
 
 _FormalParameter::_FormalParameter(pair<string,int> _paraId,string _type,int _flag):paraId(_paraId),type(_type),flag(_flag){
@@ -202,6 +198,6 @@ _Program::_Program(){
     subProgram=NULL;
 }
 
-_Program::~_Program(){
+_Program::~_Program() {
     DEL(subProgram)
 }

@@ -1,9 +1,8 @@
 #include "main.h"
 #include <fstream>
-#include <stdlib.h>
-#include <string.h>
-#include <map>
 #include <windows.h>
+#include <stdlib.h>
+#include <map>
 
 class _Program;//暂时只需要前向声明（后面也尽量保持这种状态）
 
@@ -52,7 +51,7 @@ int main(int argc, char **argv) {
     string inName = "PascalProgram.pas"; //默认输入文件名
     string outName = "CProgram.c"; //默认输出文件名
     string compilerName = "gcc"; //默认C编译器
-    string exeName = "CProcess.exe"; //默认的编译C程序后获得的可执行文件名
+    string exeName = "CProcess.S"; //默认的编译C程序后获得的可执行文件名
 
     FILE *fp = NULL;
     fp = fopen(inName.c_str(), "r"); // 读入pas文件
@@ -96,29 +95,36 @@ int main(int argc, char **argv) {
 
     if (!canContinueToSemanticAnalyse) { //如果有词法或语法错误
         outputErrors();
-        system("pause");
         return 0;
     }
 
     //开始语义分析
     cout << "Now start semantic analysing..." << endl;
     _Program *ASTRoot = getProgram(ParseTreeHead); // 这个ParseTreeHead应该是yacc生成的，extern变量
+    cout << "Now s" << endl;
     SemanticAnalyse(ASTRoot);//语义分析
 
     outputErrors();
 
     if (semanticErrorInformation.size()) { //如果有语义错误
-        system("pause");
         return 0;
     }
 
     cout << "Semantic analyse succeed!!!" << endl << endl;
 
-    //代码生成
+    //中间代码生成
     cout << "Now start generating the C Program code..." << endl;
     codeGenerate(ASTRoot, outName);
     cout << "Code Generate succeed!!!" << endl;
     cout << "Please check C code in " << outName << endl << endl;
+
+    // 目标代码（汇编代码）生成
+    string cmd;
+    cout << "Now compile the C program..." << endl;
+    cmd = compilerName + " -S -o " + exeName +' ' + outName;
+    cout << cmd << endl;
+    system(cmd.c_str());
+    cout << endl;
 
 
     return 0;

@@ -2,7 +2,7 @@
 #define MAIN_H
 #define YYERROR_VERBOSE
 #define YYDEBUG 1
-#define LEXDEBUG
+//#define LEXDEBUG //注释后，不输出词法分析调试结果
 extern int errorCount;
 extern int errorBound;
 extern void outputErrors();

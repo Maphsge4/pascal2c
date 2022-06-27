@@ -99,6 +99,7 @@ float str2float(string str) {
     return res;
 }
 
+// 获取程序第一行的形参
 void getIdList(Type *now, vector<pair<string, int> > &res, bool reverseFlag) {
     if (now->token != "idlist") {
         cout << "getIdList error" << endl;
@@ -114,6 +115,7 @@ void getIdList(Type *now, vector<pair<string, int> > &res, bool reverseFlag) {
     }
 }
 
+//数组各维度上下界
 void getArrayRangeList(Type *now, vector<pair<int, int> > &_arrayRangeList) {
     if (now->token != "period") {
         cout << "getArrayRangeList error" << endl;
@@ -127,6 +129,7 @@ void getArrayRangeList(Type *now, vector<pair<int, int> > &_arrayRangeList) {
         reverse(_arrayRangeList.begin(), _arrayRangeList.end());
 }
 
+//获取变量类型
 _Type *getType(Type *now) {
     if (now->token != "type") {
         cout << "getType error" << endl;
@@ -143,6 +146,7 @@ _Type *getType(Type *now) {
     return _type;
 }
 
+// 获取变量
 void getVariant(Type *now, vector<_Variant *> &_variantList) {
     if (now->token != "var_declaration") {
         cout << "getVariant error" << endl;
@@ -151,7 +155,7 @@ void getVariant(Type *now, vector<_Variant *> &_variantList) {
     vector<pair<string, int> > _idList;
     int loc = int(now->children.size() - 3);
     getIdList(now->children[loc], _idList, false);
-    _Type *_type = getType(now->children[loc + 2]);
+    _Type *_type = getType(now->children[loc + 2]);// 获取变量类型
     for (int i = 0; i < _idList.size(); i++)
         _variantList.push_back(new _Variant(_idList[i], _type));
     if (loc == 2)
@@ -160,6 +164,7 @@ void getVariant(Type *now, vector<_Variant *> &_variantList) {
         reverse(_variantList.begin(), _variantList.end());
 }
 
+// 从变量列表里面依次调用getVariant，获取变量
 void getVariantList(Type *now, vector<_Variant *> &_variantList) {
     if (now->token != "var_declarations") {
         cout << "getVariantList error" << endl;
@@ -169,7 +174,8 @@ void getVariantList(Type *now, vector<_Variant *> &_variantList) {
         getVariant(now->children[1], _variantList);
 }
 
-void setConst(Type *now, _Constant *&_constant) {//pascal在定义常量时，并没有指定常量的类型，所以需要自行判断
+//pascal在定义常量时，并没有指定常量的类型，所以需要自行判断
+void setConst(Type *now, _Constant *&_constant) {
     if (now->token != "const_value") {
         cout << "setConst error" << endl;
         return;
@@ -226,6 +232,7 @@ void getConstList(Type *now, vector<_Constant *> &_constantList) {
         getConst(now->children[1], _constantList);
 }
 
+//真正的解析形参
 void getValueParameter(Type *now, vector<_FormalParameter *> &_formalParaList, int flag) {
     if (now->token != "value_parameter") {
         cout << "getValueParameter error" << endl;
@@ -238,11 +245,14 @@ void getValueParameter(Type *now, vector<_FormalParameter *> &_formalParaList, i
         _formalParaList.push_back(new _FormalParameter(_idList[i], _type, flag));
 }
 
+//虚假的解析形参
 void getParameter(Type *now, vector<_FormalParameter *> &_formalParaList) {
     if (now->token != "parameter") {
         cout << "getParameter error" << endl;
         return;
     }
+
+    // 区分传值调用和引用调用
     if (now->children[0]->token == "var_parameter")
         getValueParameter(now->children[0]->children[1], _formalParaList, 1);
     else if (now->children[0]->token == "value_parameter")
@@ -251,11 +261,13 @@ void getParameter(Type *now, vector<_FormalParameter *> &_formalParaList) {
         cout << "getParameter error" << endl;
 }
 
+//解析形参
 void getFormalParameter(Type *now, vector<_FormalParameter *> &_formalParaList) {
     if (now->token != "parameter_list") {
         cout << "getFormalParameter error" << endl;
         return;
     }
+
     int loc = int(now->children.size() - 1);
     getParameter(now->children[loc], _formalParaList);
     if (loc == 2)
@@ -264,6 +276,7 @@ void getFormalParameter(Type *now, vector<_FormalParameter *> &_formalParaList) 
         reverse(_formalParaList.begin(), _formalParaList.end());
 }
 
+//依次获取形参
 void getFormalParaList(Type *now, vector<_FormalParameter *> &_formalParaList) {
     if (now->token != "formal_parameter") {
         cout << "getFormalParaList error" << endl;
@@ -273,6 +286,7 @@ void getFormalParaList(Type *now, vector<_FormalParameter *> &_formalParaList) {
         getFormalParameter(now->children[1], _formalParaList);
 }
 
+//子过程的分析程序头+形参，类似主程序的
 void getSubprogramHead(Type *now, pair<string, int> &functionID, vector<_FormalParameter *> &_formalParaList,
                        pair<string, int> &_type) {
     if (now->token != "subprogram_head") {
@@ -345,6 +359,7 @@ _Expression *getFactor(Type *now) {
     return _expression;
 }
 
+//解析表达式过程中，getSimpleExpression调用的
 _Expression *getTerm(Type *now) {
     if (now->token != "term") {
         cout << "term" << endl;
@@ -364,6 +379,7 @@ _Expression *getTerm(Type *now) {
     return _expression;
 }
 
+//解析变量引用的子步骤：表达式分析，依次分析每一个表达式
 _Expression *getSimpleExpression(Type *now) {
     if (now->token != "simple_expression") {
         cout << "getSimpleExpression error" << endl;
@@ -383,6 +399,7 @@ _Expression *getSimpleExpression(Type *now) {
     return _expression;
 }
 
+//解析变量引用的子步骤：表达式分析，依次分析每一个表达式
 _Expression *getExpression(Type *now) {
     if (now->token != "expression") {
         cout << "getExpression error" << endl;
@@ -402,6 +419,7 @@ _Expression *getExpression(Type *now) {
     return _expression;
 }
 
+//解析变量引用的子步骤：表达式分析
 void getExpressionList(Type *now, vector<_Expression *> &_expressionList) {
     if (now->token != "expression_list") {
         cout << "getExpressionList error" << endl;
@@ -415,6 +433,7 @@ void getExpressionList(Type *now, vector<_Expression *> &_expressionList) {
         reverse(_expressionList.begin(), _expressionList.end());
 }
 
+//解析变量引用的子步骤
 void getVariantReferenceList(Type *now, vector<_Expression *> &_expressionList) {
     if (now->token != "id_varpart") {
         cout << "getVariantReferenceList error" << endl;
@@ -424,6 +443,7 @@ void getVariantReferenceList(Type *now, vector<_Expression *> &_expressionList) 
         getExpressionList(now->children[1], _expressionList);
 }
 
+//语句类型：变量引用
 _VariantReference *getVariantReference(Type *now) {
     if (now->token != "variable") {
         cout << "getVariantReference error" << endl;
@@ -439,6 +459,7 @@ _VariantReference *getVariantReference(Type *now) {
     return _variantReference;
 }
 
+//语句类型：else
 _Statement *getElseStatement(Type *now) {
     if (now->token != "else_part") {
         cout << "getElseStatement error" << endl;
@@ -449,6 +470,7 @@ _Statement *getElseStatement(Type *now) {
     return getStatement(now->children[1]);
 }
 
+//语句类型：函数调用
 _Statement *getProcedureCall(Type *now) {
     if (now->token != "procedure_call") {
         cout << "getProcedureCall error" << endl;
@@ -463,6 +485,7 @@ _Statement *getProcedureCall(Type *now) {
     return _procedureCall;
 }
 
+//依次解析各种语句
 _Statement *getStatement(Type *now) {
     if (now->token != "statement") {
         cout << "getStatement error" << endl;
@@ -518,6 +541,7 @@ _Statement *getStatement(Type *now) {
     }
 }
 
+//对compound里面的语句列表进行解析
 void getStatementList(Type *now, vector<_Statement *> &_statementList) {
     if (now->token != "statement_list") {
         cout << "getStatementList error" << endl;
@@ -533,6 +557,7 @@ void getStatementList(Type *now, vector<_Statement *> &_statementList) {
         reverse(_statementList.begin(), _statementList.end());
 }
 
+// begin end 部分一句一句解析
 _Compound *getCompoundStatement(Type *now) {
     if (now->token != "compound_statement") {
         cout << "getCompoundStatement error" << endl;
@@ -545,6 +570,7 @@ _Compound *getCompoundStatement(Type *now) {
     return _compound;
 }
 
+// 子程序函数体
 void
 getSubprogramBody(Type *now, vector<_Constant *> &_constList, vector<_Variant *> &_variantList, _Compound *&_compound) {
     if (now->token != "subprogram_body") {
@@ -556,6 +582,7 @@ getSubprogramBody(Type *now, vector<_Constant *> &_constList, vector<_Variant *>
     _compound = getCompoundStatement(now->children[2]);
 }
 
+//获取子过程的步骤1：获取定义
 _FunctionDefinition *getSubprogramDefinition(Type *now) {
     if (now->token != "subprogram") {
         cout << "getSubprogramDefinition error" << endl;
@@ -569,6 +596,7 @@ _FunctionDefinition *getSubprogramDefinition(Type *now) {
     return _functionDefinition;
 }
 
+//获取子过程有哪些
 void getSubprogramDefinitionList(Type *now, vector<_FunctionDefinition *> &_subprogramDefinitionList) {
     if (now->token != "subprogram_declarations") {
         cout << "getSubprogramDefinitionList error" << endl;
@@ -581,6 +609,7 @@ void getSubprogramDefinitionList(Type *now, vector<_FunctionDefinition *> &_subp
         reverse(_subprogramDefinitionList.begin(), _subprogramDefinitionList.end());
 }
 
+//第一行分析完，该读程序体（剩余部分）了
 _SubProgram *getProgramBody(Type *now) {
     if (now->token != "program_body") {
         cout << "getProgramBody error" << endl;
@@ -594,6 +623,7 @@ _SubProgram *getProgramBody(Type *now) {
     return _subProgram;
 }
 
+//读程序头
 void getProgramHead(Type *now, pair<string, int> &_programId, vector<pair<string, int> > &_paraList) {
     if (now->token != "program_head") {
         cout << "getProgramHead error" << endl;
